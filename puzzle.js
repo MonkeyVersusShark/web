@@ -3,10 +3,12 @@
     this.createTiles();
     this.listenButtonClicks();
     this.listenTileClicks();
-  }
+  };
 
   var p = Pane.prototype;
-  var hour = 0, minute = 0, second = 0, time = 0;
+  var isPlay = false;
+  var flag = true;
+  var isShuffle = false;
 
   p.createTiles = function() {
     that = this;
@@ -29,12 +31,33 @@
     blank.column = 3;
   };
 
+  p.calculateTime = function() {
+    var original_time = moment();
+    this.flag = setInterval(function() {
+      var now_time = moment();
+      var time = now_time.diff(original_time);
+      var hour = Math.floor(time / 1000 / 60 / 60 % 24);
+      var minute = Math.floor(time / 1000 / 60 % 60);
+      var second = Math.floor(time / 1000 % 60);
+      if (hour < 10) hour = "0" + hour;
+      if (minute < 10)  minute = "0" + minute;
+      if (second < 10) second = "0" + second;
+      $('#times')[0].innerHTML = hour + ":" + minute + ":" + second;
+    }, 1000);
+  };
+
+  p.stopTime = function() {
+      clearInterval(this.flag);
+  };
+
   p.listenButtonClicks = function() {
     $('button').click(function() {
       this.step.num = 0;
-      this.time = this.hour = this.minute = this.second = 0;
       this.step.canmove = true;
-      this.calculateTime(this.time, this.hour, this.minute, this.second);
+      if (this.isPlay === true)
+        this.stopTime();
+      this.calculateTime();
+      this.isPlay = true;
       this.recreate(this.blank);
       $("#win").css("opacity", 0);
       for (var i = 0; i < this.tiles.length - 1; i++) {
@@ -42,6 +65,7 @@
         this.tiles[i].updatePosition();
       }
       this.shuffle();
+      this.isShuffle = false;
     }.bind(this));
   };
 
@@ -57,24 +81,6 @@
     }.bind(this));
   };
 
-  p.calculateTime = function(time, hour, minute, second) {
-    flag = setInterval(function() {
-      hour = Math.floor(time / 60 / 60);
-      minute = Math.floor(time / 60 % 60);
-      second = Math.floor(time % 60);
-      if (hour < 10) hour = "0" + hour;
-      if (minute < 10)  minute = "0" + minute;
-      if (second < 10) second = "0" + second;
-      $('#times')[0].innerHTML = hour + ":" + minute + ":" + second;
-      time = time + 1;
-    }, 1000);
-  }
-
-  p.stopTime = function() {
-      clearInterval(this.flag);
-      alert("dd");
-  }
-
   p.isWin = function() {
     for (var i = 0; i < this.tiles.length - 1; i++) {
       if (!this.tiles[i].isInRightPosition()) return false;
@@ -83,15 +89,17 @@
   };
 
   p.win = function() {
-    if (this.isWin() && this.step.num != 0) {
+    if (this.isPlay === true && this.isShuffle === false && this.isWin() && this.step.num !== 0) {
       $("#win").css("opacity", 1);
       $("#win").html("You Win!");
       this.step.canmove = false;
+      this.isPlay = false;
       this.stopTime();
     }
   };
 
   p.shuffle = function() {
+    this.isShuffle = true;
     var valueOfDifficultyLevel = $("select")[0].options[$("select")[0].selectedIndex].value;
     for (var i = 0; i < valueOfDifficultyLevel; i++) {
       this.step.canmove = true;
@@ -116,7 +124,7 @@
   p = Tile.prototype;
 
   p.isInRightPosition = function() {
-    return (this.row == Math.floor(this.seq / 4) && (this.column == this.seq % 4))
+    return (this.row == Math.floor(this.seq / 4) && (this.column == this.seq % 4));
   };
 
   p.setPosition = function() {
